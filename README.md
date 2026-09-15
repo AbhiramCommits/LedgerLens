@@ -1,12 +1,22 @@
 # LedgerLens
 
-Full-stack personal-finance expense categorizer (skeleton — no business logic yet).
+Full-stack personal-finance expense categorizer.
 
 ## Stack
 
 - `backend/` — Python 3.12, FastAPI, SQLAlchemy 2.x (async), Alembic, Pydantic v2, managed with `uv`
 - `frontend/` — React 18, TypeScript, Vite, TanStack Query, React Router, Recharts, Tailwind CSS
 - `docker-compose.yml` — `db` (postgres:16), `api` (FastAPI, hot reload), `web` (Vite dev server, proxies `/api` → `api`)
+
+## API
+
+All routes except health require a bearer token from register/login; every
+query is scoped to the authenticated user.
+
+- `POST /api/auth/register`, `POST /api/auth/login` — JWT auth (bcrypt password hashing)
+- `GET/POST /api/accounts` — list/create accounts
+- `POST /api/imports` — multipart CSV upload (`file` + `account_id` form fields). Handles debit/credit split columns, multiple date formats, currency symbols, parenthesized amounts, and merchant-name cleaning; dedupes on (account, date, amount, merchant). Returns `{batch_id, inserted, skipped, errors}`
+- `GET /api/imports/{batch_id}` — import batch status
 
 ## Running it
 

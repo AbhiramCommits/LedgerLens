@@ -61,6 +61,13 @@ class Transaction(Base):
     __tablename__ = "transactions"
     __table_args__ = (
         Index("ix_transactions_account_id_posted_date", "account_id", "posted_date"),
+        UniqueConstraint(
+            "account_id",
+            "posted_date",
+            "amount",
+            "merchant_raw",
+            name="uq_transactions_dedupe",
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
@@ -69,7 +76,7 @@ class Transaction(Base):
     )
     posted_date: Mapped[date] = mapped_column(Date)
     description: Mapped[str | None] = mapped_column(Text)
-    merchant_raw: Mapped[str | None] = mapped_column(Text)
+    merchant_raw: Mapped[str] = mapped_column(Text, server_default="")
     amount: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     category: Mapped[str | None] = mapped_column(String(100))
     category_source: Mapped[CategorySource | None] = mapped_column(
