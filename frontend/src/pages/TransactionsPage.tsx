@@ -1,11 +1,5 @@
-import { useMemo, useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  patchTransactionCategory,
-  type Category,
-  type TransactionListQuery,
-  type TransactionPage,
-} from '../api/client';
+import { useEffect, useMemo, useState } from 'react';
+import { type Category, type TransactionListQuery } from '../api/client';
 import { EmptyState } from '../components/EmptyState';
 import { ErrorState } from '../components/ErrorState';
 import { Pagination } from '../components/Pagination';
@@ -13,7 +7,8 @@ import { SkeletonRows } from '../components/Skeleton';
 import { CategorySelect } from '../components/transactions/CategorySelect';
 import { ConfidenceBadge } from '../components/transactions/ConfidenceBadge';
 import { Select } from '../components/ui/Select';
-import { analyticsKeys, useTransactions } from '../hooks/useAnalytics';
+import { useCategoryMutation } from '../hooks/useCategoryMutation';
+import { useTransactions } from '../hooks/useAnalytics';
 import { CATEGORY_OPTIONS } from '../lib/categories';
 import { errorMessage } from '../lib/errors';
 import { formatCurrency, formatDate, toNumber } from '../lib/format';
@@ -58,37 +53,12 @@ export function TransactionsPage() {
   );
 
   const transactions = useTransactions(query);
-  const queryClient = useQueryClient();
 
-  const categoryMutation = useMutation({
-    mutationFn: ({ id, category }: { id: string; category: Category }) =>
-      patchTransactionCategory(id, { category }),
-    onMutate: async ({ id, category }) => {
-      await queryClient.cancelQueries({ queryKey: ['transactions'] });
-      const previous = queryClient.getQueryData<TransactionPage>(['transactions', query]);
-      if (previous) {
-        queryClient.setQueryData<TransactionPage>(['transactions', query], {
-          ...previous,
-          items: previous.items.map((transaction) =>
-            transaction.id === id
-              ? { ...transaction, category, category_source: 'user', confidence: 1 }
-              : transaction,
-          ),
-        });
-      }
-      return { previous };
-    },
-    onError: (error, _variables, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(['transactions', query], context.previous);
-      }
-      setActionError(`Could not update category: ${errorMessage(error)}`);
-    },
-    onSuccess: () => {
-      setActionError(null);
-      void queryClient.invalidateQueries({ queryKey: analyticsKeys.all });
-    },
-  });
+  const categoryMutation = useCategoryMutation(query, (message) => setActionError(message));
+
+  useEffect(() => {
+    if (categoryMutation.isSuccess) setActionError(null);
+  }, [categoryMutation.isSuccess]);
 
   function toggleSort(key: SortKey) {
     if (sortBy === key) {

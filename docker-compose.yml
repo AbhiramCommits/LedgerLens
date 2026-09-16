@@ -26,6 +26,7 @@ services:
       JWT_EXPIRE_MINUTES: ${JWT_EXPIRE_MINUTES:-60}
     volumes:
       - ./backend:/app
+      - ./sample_data:/sample_data:ro
     depends_on:
       db:
         condition: service_healthy

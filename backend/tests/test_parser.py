@@ -80,9 +80,12 @@ class TestParseDate:
         [
             ("2025-01-05", date(2025, 1, 5)),
             ("2025/01/05", date(2025, 1, 5)),
+            ("2025.01.05", date(2025, 1, 5)),
             ("20250105", date(2025, 1, 5)),
             ("01/05/2025", date(2025, 1, 5)),
             ("31/12/2024", date(2024, 12, 31)),
+            ("31.12.2024", date(2024, 12, 31)),
+            ("31-12-2024", date(2024, 12, 31)),
             ("Jan 5, 2025", date(2025, 1, 5)),
             ("05-Jan-2025", date(2025, 1, 5)),
             ("2025-01-05T10:30:00", date(2025, 1, 5)),
@@ -168,8 +171,23 @@ class TestParseCsv:
             "Date,Description,Amount\n"
             '2025-04-01,COFFEE,($4.50)\n'
             '2025-04-02,SALARY,"USD 1,250.00"\n'
+            '2025-04-03,REFUND,"USD (12.34)"\n'
         )
         rows, errors = _rows_and_errors(data)
         assert not errors
         assert rows[0].amount == Decimal("-4.50")
         assert rows[1].amount == Decimal("1250.00")
+        assert rows[2].amount == Decimal("-12.34")
+
+    def test_malformed_row_is_reported_and_skipped(self) -> None:
+        data = (
+            "Date,Description,Amount\n"
+            "2025-05-01,OK ROW,1.00\n"
+            "garbage-date,BAD ROW,2.00\n"
+            "2025-05-03,ALSO OK,3.00\n"
+        )
+        rows, errors = _rows_and_errors(data)
+        assert [row.posted_date for row in rows] == [date(2025, 5, 1), date(2025, 5, 3)]
+        assert len(errors) == 1
+        assert errors[0].row_number == 3
+        assert "unparseable date" in errors[0].reason

@@ -17,6 +17,7 @@ QUANTIZED = Decimal("0.01")
 _DATE_FORMATS = (
     "%Y-%m-%d",
     "%Y/%m/%d",
+    "%Y.%m.%d",
     "%Y%m%d",
     "%Y-%m-%dT%H:%M:%S",
     "%Y-%m-%d %H:%M:%S",
@@ -26,6 +27,7 @@ _DATE_FORMATS = (
     "%m-%d-%y",
     "%d/%m/%Y",
     "%d-%m-%Y",
+    "%d.%m.%Y",
     "%d/%m/%y",
     "%d-%m-%y",
     "%b %d, %Y",

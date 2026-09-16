@@ -1,4 +1,4 @@
-.PHONY: up down test lint migrate gen-api
+.PHONY: up down test lint migrate gen-api seed
 
 up:
 	docker compose up -d --build
@@ -8,6 +8,7 @@ down:
 
 test:
 	docker compose run --rm api uv run pytest
+	docker compose run --rm web npm run test
 
 lint:
 	docker compose run --rm api uv run ruff check .
@@ -20,3 +21,7 @@ migrate:
 
 gen-api:
 	docker compose run --rm web npm run gen-api
+
+seed:
+	docker compose up -d --wait db
+	docker compose run --rm api uv run python scripts/seed.py

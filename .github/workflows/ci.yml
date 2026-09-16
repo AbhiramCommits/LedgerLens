@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ledgerlens
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d ledgerlens"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/ledgerlens
+      JWT_SECRET: ci-only-secret-that-is-definitely-long-enough
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - name: Install dependencies
+        working-directory: backend
+        run: uv sync --frozen
+      - name: Lint (ruff)
+        working-directory: backend
+        run: uv run ruff check .
+      - name: Typecheck (mypy, strict)
+        working-directory: backend
+        run: uv run mypy app tests
+      - name: Test (pytest, real Postgres, coverage >= 80%)
+        working-directory: backend
+        run: uv run pytest
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+      - name: Lint (eslint + prettier)
+        working-directory: frontend
+        run: npm run lint
+      - name: Typecheck (tsc --noEmit)
+        working-directory: frontend
+        run: npm run typecheck
+      - name: Test (vitest + React Testing Library)
+        working-directory: frontend
+        run: npm run test
+      - name: Build (vite)
+        working-directory: frontend
+        run: npm run build
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build images
+        run: docker compose build

@@ -25,6 +25,7 @@ dev = [
     "mypy>=1.11.0",
     "pytest>=8.3.0",
     "pytest-asyncio>=0.24.0",
+    "pytest-cov>=5.0.0",
     "ruff>=0.6.0",
 ]
 
@@ -53,3 +54,9 @@ asyncio_default_fixture_loop_scope = "session"
 asyncio_default_test_loop_scope = "session"
 pythonpath = ["."]
 testpaths = ["tests"]
+addopts = "--cov=app --cov-report=term-missing --cov-fail-under=80"
+
+[tool.coverage.run]
+data_file = "/tmp/ledgerlens.coverage"
+concurrency = ["greenlet"]
+core = "ctrace"
