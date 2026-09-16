@@ -111,3 +111,22 @@ async def test_analytics_validation(client: AsyncClient) -> None:
         "/api/analytics/by-category", params={"month": "nope"}, headers=auth(token)
     )
     assert response.status_code == 422
+
+
+async def test_totals_by_source(client: AsyncClient) -> None:
+    token = await register(client, "alice@example.com")
+    prev_key, this_key = await _seed_categorized(client, token)
+
+    response = await client.get(
+        "/api/analytics/by-source", params={"month": this_key}, headers=auth(token)
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["sources"] == {"llm": 0, "rule": 2, "user": 0}
+    assert body["total_categorized"] == 2
+    assert body["uncategorized"] == 0
+
+    response = await client.get(
+        "/api/analytics/by-source", params={"month": prev_key}, headers=auth(token)
+    )
+    assert response.json()["total_categorized"] == 2

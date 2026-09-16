@@ -1,4 +1,5 @@
 from datetime import date
+from decimal import Decimal
 
 from fakes import FakeCategorizer
 from helpers import auth, create_account, import_csv, register
@@ -184,3 +185,40 @@ async def test_categorize_empty(client: AsyncClient) -> None:
     body = response.json()
     assert body["categorized"] == 0
     assert body["transactions"] == []
+
+
+async def test_list_transactions_pagination_and_filters(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    token = await register(client, "alice@example.com")
+    await _seed(client, token)
+
+    response = await client.get("/api/transactions", headers=auth(token))
+    assert response.status_code == 200
+    body = response.json()
+    assert body["total"] == 5
+    assert len(body["items"]) == 5
+
+    page_two = await client.get(
+        "/api/transactions", params={"page": 2, "page_size": 2}, headers=auth(token)
+    )
+    assert page_two.status_code == 200
+    assert len(page_two.json()["items"]) == 2
+
+    sorted_amounts = await client.get(
+        "/api/transactions",
+        params={"sort_by": "amount", "sort_order": "asc"},
+        headers=auth(token),
+    )
+    amounts = [Decimal(str(item["amount"])) for item in sorted_amounts.json()["items"]]
+    assert amounts == sorted(amounts)
+
+    low_confidence = await client.get(
+        "/api/transactions", params={"max_confidence": 0.5}, headers=auth(token)
+    )
+    assert low_confidence.json()["total"] == 5
+
+    bad_sort = await client.get(
+        "/api/transactions", params={"sort_by": "hack"}, headers=auth(token)
+    )
+    assert bad_sort.status_code == 422

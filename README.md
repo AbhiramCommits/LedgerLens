@@ -20,8 +20,22 @@ query is scoped to the authenticated user.
 - `POST /api/transactions/categorize` — three-tier categorization of uncategorized rows: user overrides → keyword rules → Claude (batched ≤25, merchant-cached, with few-shot examples from your corrections). Falls back to rules/`other` if the LLM is unavailable
 - `PATCH /api/transactions/{id}` — set a category manually (writes a `category_overrides` row so future imports follow it)
 - `GET /api/analytics/by-category?month=YYYY-MM` and `GET /api/analytics/monthly-trend?months=6` — spending analytics
+- `GET /api/analytics/by-source?month=YYYY-MM` — categorized share by source (llm/rule/user)
+- `GET /api/transactions` — paginated/sortable/filterable transaction list (`page`, `page_size`, `sort_by`, `sort_order`, `category`, `max_confidence`)
 
 Set `ANTHROPIC_API_KEY` (and optionally `ANTHROPIC_MODEL`, default `claude-sonnet-4-5`) in `.env` to enable the LLM tier.
+
+## Frontend
+
+React 18 + TypeScript + Vite + TanStack Query + Recharts + Tailwind. Pages: login/register, dashboard (month picker, category donut, 6-month trend, stat tiles), transactions (sortable/filterable table with inline category editing), and CSV import (drag-and-drop with progress + categorize-now).
+
+The API client is generated from the FastAPI OpenAPI schema — no hand-written response types:
+
+```sh
+make gen-api   # regenerates frontend/src/api/schema.d.ts from the running api
+```
+
+(Outside Docker: `OPENAPI_URL=http://localhost:18000 npm run gen-api` in `frontend/`.)
 
 ## Running it
 

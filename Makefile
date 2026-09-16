@@ -1,4 +1,4 @@
-.PHONY: up down test lint migrate
+.PHONY: up down test lint migrate gen-api
 
 up:
 	docker compose up -d --build
@@ -17,3 +17,6 @@ lint:
 migrate:
 	docker compose up -d --wait db
 	docker compose run --rm api uv run alembic upgrade head
+
+gen-api:
+	docker compose run --rm web npm run gen-api

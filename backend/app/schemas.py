@@ -79,6 +79,13 @@ class TransactionCategoryUpdate(BaseModel):
     category: Category
 
 
+class TransactionPage(BaseModel):
+    items: list[TransactionRead]
+    total: int
+    page: int
+    page_size: int
+
+
 class CategorizeResponse(BaseModel):
     categorized: int
     by_source: dict[str, int]
@@ -107,3 +114,10 @@ class MonthTotal(BaseModel):
 
 class MonthlyTrendResponse(BaseModel):
     months: list[MonthTotal]
+
+
+class BySourceResponse(BaseModel):
+    month: str
+    sources: dict[str, int]
+    total_categorized: int
+    uncategorized: int

@@ -8,7 +8,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.categorize.taxonomy import Category
 from app.deps import get_current_user, get_session
 from app.models import Account, Transaction, User
-from app.schemas import ByCategoryResponse, CategoryTotal, MonthlyTrendResponse, MonthTotal
+from app.schemas import (
+    ByCategoryResponse,
+    BySourceResponse,
+    CategoryTotal,
+    MonthlyTrendResponse,
+    MonthTotal,
+)
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
 
@@ -57,6 +63,46 @@ async def totals_by_category(
     ]
     totals.sort(key=lambda item: (-item.total, item.category))
     return ByCategoryResponse(month=month, totals=totals)
+
+
+@router.get("/by-source", response_model=BySourceResponse)
+async def totals_by_source(
+    month: str = Query(..., pattern=r"^\d{4}-\d{2}$"),
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> BySourceResponse:
+    year, month_number = _split_month(month)
+    start = date(year, month_number, 1)
+    end = _next_month(year, month_number)
+
+    rows = (
+        await session.execute(
+            select(Transaction.category_source, func.count())
+            .join(Account, Transaction.account_id == Account.id)
+            .where(
+                Account.user_id == user.id,
+                Transaction.posted_date >= start,
+                Transaction.posted_date < end,
+            )
+            .group_by(Transaction.category_source)
+        )
+    ).all()
+
+    sources = {"llm": 0, "rule": 0, "user": 0}
+    uncategorized = 0
+    for row in rows:
+        count = int(row[1] or 0)
+        if row[0] is None:
+            uncategorized = count
+        else:
+            sources[row[0].value] = count
+
+    return BySourceResponse(
+        month=month,
+        sources=sources,
+        total_categorized=sum(sources.values()),
+        uncategorized=uncategorized,
+    )
 
 
 @router.get("/monthly-trend", response_model=MonthlyTrendResponse)
