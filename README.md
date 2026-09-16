@@ -17,6 +17,11 @@ query is scoped to the authenticated user.
 - `GET/POST /api/accounts` — list/create accounts
 - `POST /api/imports` — multipart CSV upload (`file` + `account_id` form fields). Handles debit/credit split columns, multiple date formats, currency symbols, parenthesized amounts, and merchant-name cleaning; dedupes on (account, date, amount, merchant). Returns `{batch_id, inserted, skipped, errors}`
 - `GET /api/imports/{batch_id}` — import batch status
+- `POST /api/transactions/categorize` — three-tier categorization of uncategorized rows: user overrides → keyword rules → Claude (batched ≤25, merchant-cached, with few-shot examples from your corrections). Falls back to rules/`other` if the LLM is unavailable
+- `PATCH /api/transactions/{id}` — set a category manually (writes a `category_overrides` row so future imports follow it)
+- `GET /api/analytics/by-category?month=YYYY-MM` and `GET /api/analytics/monthly-trend?months=6` — spending analytics
+
+Set `ANTHROPIC_API_KEY` (and optionally `ANTHROPIC_MODEL`, default `claude-sonnet-4-5`) in `.env` to enable the LLM tier.
 
 ## Running it
 

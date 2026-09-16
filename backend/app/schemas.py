@@ -1,9 +1,11 @@
 import uuid
-from datetime import datetime
+from datetime import date, datetime
+from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
-from app.models import ImportStatus
+from app.categorize.taxonomy import Category
+from app.models import CategorySource, ImportStatus
 
 
 class RegisterRequest(BaseModel):
@@ -56,3 +58,52 @@ class ImportBatchStatus(BaseModel):
     row_count: int
     status: ImportStatus
     created_at: datetime
+
+
+class TransactionRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    account_id: uuid.UUID
+    posted_date: date
+    description: str | None
+    merchant_raw: str
+    amount: Decimal
+    category: str | None
+    category_source: CategorySource | None
+    confidence: float | None
+    created_at: datetime
+
+
+class TransactionCategoryUpdate(BaseModel):
+    category: Category
+
+
+class CategorizeResponse(BaseModel):
+    categorized: int
+    by_source: dict[str, int]
+    fallback_reasons: list[str]
+    transactions: list[TransactionRead]
+
+
+class CategoryTotal(BaseModel):
+    category: str
+    total: Decimal
+    count: int
+
+
+class ByCategoryResponse(BaseModel):
+    month: str
+    totals: list[CategoryTotal]
+
+
+class MonthTotal(BaseModel):
+    month: str
+    total: Decimal
+    income: Decimal
+    expenses: Decimal
+    count: int
+
+
+class MonthlyTrendResponse(BaseModel):
+    months: list[MonthTotal]

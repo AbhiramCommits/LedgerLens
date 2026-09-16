@@ -10,9 +10,10 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    app_version: str = "0.2.0"
+    app_version: str = "0.3.0"
     database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/ledgerlens"
     anthropic_api_key: str = ""
+    anthropic_model: str = "claude-sonnet-4-5"
     jwt_secret: str = "dev-only-secret"
     jwt_expire_minutes: int = 60
 

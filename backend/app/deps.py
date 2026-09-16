@@ -1,9 +1,11 @@
 from collections.abc import AsyncGenerator
+from functools import lru_cache
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.categorize.llm import AnthropicCategorizerClient, CategorizerClient
 from app.db import SessionLocal
 from app.models import User
 from app.security import decode_access_token
@@ -14,6 +16,11 @@ bearer_scheme = HTTPBearer(auto_error=False)
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
     async with SessionLocal() as session:
         yield session
+
+
+@lru_cache(maxsize=1)
+def get_categorizer() -> CategorizerClient:
+    return AnthropicCategorizerClient()
 
 
 def _unauthorized(detail: str) -> HTTPException:

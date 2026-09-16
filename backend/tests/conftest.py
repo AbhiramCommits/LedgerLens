@@ -2,6 +2,7 @@ import time
 from collections.abc import AsyncGenerator, AsyncIterator
 
 import pytest_asyncio
+from fakes import FakeCategorizer
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import text
 from sqlalchemy.engine import make_url
@@ -16,7 +17,7 @@ from sqlalchemy.pool import NullPool
 from app import models  # noqa: F401
 from app.config import settings
 from app.db import Base
-from app.deps import get_session
+from app.deps import get_categorizer, get_session
 from app.main import app
 
 TEST_DB_NAME = "ledgerlens_test"
@@ -79,7 +80,17 @@ async def db_session(_test_database: None) -> AsyncIterator[AsyncSession]:
 
 
 @pytest_asyncio.fixture
-async def client(db_session: AsyncSession) -> AsyncIterator[AsyncClient]:
+async def fake_categorizer() -> AsyncIterator[FakeCategorizer]:
+    fake = FakeCategorizer()
+    app.dependency_overrides[get_categorizer] = lambda: fake
+    yield fake
+    app.dependency_overrides.pop(get_categorizer, None)
+
+
+@pytest_asyncio.fixture
+async def client(
+    db_session: AsyncSession, fake_categorizer: FakeCategorizer
+) -> AsyncIterator[AsyncClient]:
     async def override_get_session() -> AsyncGenerator[AsyncSession, None]:
         yield db_session
 
